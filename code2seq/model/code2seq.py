@@ -12,12 +12,12 @@ from torch import nn
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 from torchmetrics import MetricCollection, Metric
-
+from torchmetrics import Accuracy, BLEUScore
 from code2seq.data.path_context import BatchedLabeledPathContext
 from code2seq.data.vocabulary import Vocabulary
 from code2seq.model.modules import PathEncoder
 from code2seq.utils.optimization import configure_optimizers_alon
-
+from code2seq.model.metrics import Perfect, Leivensitein, BLEU
 
 class Code2Seq(LightningModule):
     def __init__(
@@ -45,6 +45,18 @@ class Code2Seq(LightningModule):
         id2label = {v: k for k, v in vocabulary.label_to_id.items()}
         metrics.update(
             {f"{holdout}_chrf": ChrF(id2label, ignore_idx + [self.__pad_idx, eos_idx]) for holdout in ["val", "test"]}
+        )
+        metrics.update(
+            {f"{holdout}_perfect": Perfect() for holdout in ["train", "val", "test"]}
+        )
+        metrics.update(
+            {f"{holdout}_lei": Leivensitein() for holdout in ["train", "val", "test"]}
+        )
+        metrics.update(
+            {f"{holdout}_bleu": BLEU() for holdout in ["train", "val", "test"]}
+        )
+        metrics.update(
+            {f"{holdout}_acc": Accuracy() for holdout in ["train", "val", "test"]}
         )
         self.__metrics = MetricCollection(metrics)
 
@@ -111,19 +123,29 @@ class Code2Seq(LightningModule):
 
         with torch.no_grad():
             prediction = logits.argmax(-1)
-            metric: ClassificationMetrics = self.__metrics[f"{step}_f1"](prediction, batch.labels)
+            metric: ClassificationMetrics = self.__metrics[f"{step}_f1"](prediction, batch.labels) # prediction 答え？　labels ラベル？
             result.update(
-                {f"{step}/f1": metric.f1_score, f"{step}/precision": metric.precision, f"{step}/recall": metric.recall}
+                {f"{step}/f1": metric.f1_score, f"{step}/precision": metric.precision, f"{step}/recall": metric.recall,}
             )
+            torch.set_printoptions(edgeitems=1000)
+            result[f"{step}/perfect"] = self.__metrics[f"{step}_perfect"](prediction, batch.labels)
+            result[f"{step}/lei"] = self.__metrics[f"{step}_lei"](prediction, batch.labels)
+            result[f"{step}/bleu"] = self.__metrics[f"{step}_bleu"](prediction, batch.labels)
+            result[f"{step}/acc"] = self.__metrics[f"{step}_acc"](prediction, batch.labels)
             if step != "train":
                 result[f"{step}/chrf"] = self.__metrics[f"{step}_chrf"](prediction, batch.labels)
-
         return result
 
+    #学習用のロスを返している
     def training_step(self, batch: BatchedLabeledPathContext, batch_idx: int) -> Dict:  # type: ignore
         result = self._shared_step(batch, "train")
+        # logはあくまでログ、 lossは学習に使われている
         self.log_dict(result, on_step=True, on_epoch=False)
         self.log("f1", result["train/f1"], prog_bar=True, logger=False)
+        self.log("perfect", result["train/perfect"], prog_bar=True, logger=False)
+        self.log("lei", result["train/lei"], prog_bar=True, logger=False)
+        self.log("bleu", result["train/bleu"], prog_bar=True, logger=False)
+        self.log("acc", result["train/acc"], prog_bar=True, logger=False)
         return result["train/loss"]
 
     def validation_step(self, batch: BatchedLabeledPathContext, batch_idx: int) -> Dict:  # type: ignore
@@ -136,6 +158,7 @@ class Code2Seq(LightningModule):
 
     # ========== On epoch end ==========
 
+    # epocの終わりに実行ロスの平均をとったりスル。
     def _shared_epoch_end(self, step_outputs: EPOCH_OUTPUT, step: str):
         with torch.no_grad():
             losses = [so if isinstance(so, torch.Tensor) else so["loss"] for so in step_outputs]
@@ -148,6 +171,14 @@ class Code2Seq(LightningModule):
                 f"{step}/recall": metric.recall,
             }
             self.__metrics[f"{step}_f1"].reset()
+            log[f"{step}/perfect"]  = self.__metrics[f"{step}_perfect"].compute()
+            self.__metrics[f"{step}_perfect"].reset()
+            log[f"{step}/lei"]  = self.__metrics[f"{step}_lei"].compute()
+            self.__metrics[f"{step}_lei"].reset()
+            log[f"{step}/bleu"]  = self.__metrics[f"{step}_bleu"].compute()
+            self.__metrics[f"{step}_bleu"].reset()
+            log[f"{step}/acc"]  = self.__metrics[f"{step}_acc"].compute()
+            self.__metrics[f"{step}_acc"].reset()
             if step != "train":
                 log[f"{step}/chrf"] = self.__metrics[f"{step}_chrf"].compute()
                 self.__metrics[f"{step}_chrf"].reset()

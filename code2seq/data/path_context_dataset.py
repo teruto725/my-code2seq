@@ -12,8 +12,7 @@ from code2seq.data.vocabulary import Vocabulary
 
 class PathContextDataset(Dataset):
     _log_file = "bad_samples.log"
-    _separator = "|"
-
+    _separator = "|" # subtokenのセパレータ
     def __init__(self, data_file: str, config: DictConfig, vocabulary: Vocabulary, random_context: bool):
         if not exists(data_file):
             raise ValueError(f"Can't find file with data: {data_file}")
@@ -33,7 +32,13 @@ class PathContextDataset(Dataset):
     def __getitem__(self, index) -> Optional[LabeledPathContext]:
         raw_sample = get_line_by_offset(self._data_file, self._line_offsets[index])
         try:
-            raw_label, *raw_path_contexts = raw_sample.split()
+            # code review用
+            raw_label, content = raw_sample.split(" $$$ ") # raw_labelデータが教師データ [a,b,c,d]
+            _, *raw_path_contexts = content.split() #スペース区切り #methods名の削除
+            raw_path_contexts = list(filter(lambda x: x != "", raw_path_contexts))
+            # code seq用
+            #raw_label, *raw_path_contexts = raw_sample.split()
+
         except ValueError as e:
             with open(self._log_file, "a") as f_out:
                 f_out.write(f"Error reading sample from line #{index}: {e}")
@@ -45,8 +50,8 @@ class PathContextDataset(Dataset):
             shuffle(raw_path_contexts)
         raw_path_contexts = raw_path_contexts[:n_contexts]
 
-        # Tokenize label
-        if self._config.max_label_parts == 1:
+        # Tokenize label <= 教師ラベルっぽい どっちもトークン化
+        if self._config.max_label_parts == 1: 
             label = self.tokenize_class(raw_label, self._vocab.label_to_id)
         else:
             label = self.tokenize_label(raw_label, self._vocab.label_to_id, self._config.max_label_parts)
@@ -67,7 +72,7 @@ class PathContextDataset(Dataset):
 
     @staticmethod
     def tokenize_label(raw_label: str, vocab: Dict[str, int], max_parts: Optional[int]) -> List[int]:
-        sublabels = raw_label.split(PathContextDataset._separator)
+        sublabels = raw_label.split(" ") # 分割している
         max_parts = max_parts or len(sublabels)
         label_unk = vocab[Vocabulary.UNK]
 

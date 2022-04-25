@@ -22,8 +22,15 @@ class Vocabulary(BaseVocabulary):
 
     @staticmethod
     def _process_raw_sample(raw_sample: str, counters: Dict[str, CounterType[str]], context_seq: List[str]):
-        label, *path_contexts = raw_sample.split(" ")
-        counters[Vocabulary.LABEL].update(label.split(Vocabulary._separator))
+        #label, *path_contexts = raw_sample.split(" ")
+        # code review用
+        label, content = raw_sample.split(" $$$ ") # raw_labelデータが教師データ [a,b,c,d]
+        _, *path_contexts = content.split(" ") #スペース区切り #methods名の削除
+        path_contexts = list(filter(lambda x: x != "",path_contexts))
+        # code seq用
+        #label, *path_contexts = raw_sample.split(" ")
+
+        counters[Vocabulary.LABEL].update(list(filter(lambda x: x != "", label.split(" "))))
         for path_context in path_contexts:
             for token, desc in zip(path_context.split(","), context_seq):
                 counters[desc].update(token.split(Vocabulary._separator))

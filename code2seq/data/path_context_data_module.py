@@ -12,6 +12,7 @@ from code2seq.data.path_context import LabeledPathContext, BatchedLabeledPathCon
 from code2seq.data.path_context_dataset import PathContextDataset
 from code2seq.data.vocabulary import Vocabulary
 
+# ここを書き換えれば良さそう
 
 class PathContextDataModule(LightningDataModule):
     _train = "train"
@@ -61,7 +62,7 @@ class PathContextDataModule(LightningDataModule):
         if self._vocabulary is None:
             raise RuntimeError(f"Setup vocabulary before creating data loaders")
 
-        holdout_file = join(self._data_dir, f"{holdout}.c2s")
+        holdout_file = join(self._data_dir, f"{holdout}.c2s")# ファイル読み込み
         random_context = self._config.random_context if holdout == self._train else False
         dataset = self._create_dataset(holdout_file, random_context)
 
