@@ -34,7 +34,7 @@ class BLEU(Metric):
         
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         assert preds.shape == target.shape
-        catted = torch.stack([preds,target]).numpy().astype(int).astype(str)
+        catted = torch.stack([preds,target]).cpu().numpy().astype(int).astype(str)
         stack = 0
         for i in range(catted.shape[2]):# batch size
             stack+=( self._calc_bleu(catted[:,:,i]))
@@ -63,7 +63,7 @@ class Leivensitein(Metric):
         
     def update(self, preds: torch.Tensor, target: torch.Tensor):
         assert preds.shape == target.shape
-        catted = torch.stack([preds,target]).numpy().astype(int)
+        catted = torch.stack([preds,target]).cpu().numpy().astype(int)
         
         stack = 0
         for i in range(catted.shape[2]):# batch size
