@@ -33,9 +33,12 @@ class PathContextDataset(Dataset):
         raw_sample = get_line_by_offset(self._data_file, self._line_offsets[index])
         try:
             # code review用
-            raw_label, content = raw_sample.split(" $$$ ") # raw_labelデータが教師データ [a,b,c,d]
-            _, *raw_path_contexts = content.split() #スペース区切り #methods名の削除
+            raw_label, c2s_content, infer_content = raw_sample.split("$$$") # raw_labelデータが教師データ [a,b,c,d]
+            _, *raw_path_contexts = c2s_content.split() #スペース区切り #methods名の削除
             raw_path_contexts = list(filter(lambda x: x != "", raw_path_contexts))
+            
+            infer_content = 
+
             # code seq用
             #raw_label, *raw_path_contexts = raw_sample.split()
 
@@ -64,7 +67,7 @@ class PathContextDataset(Dataset):
                 f_out.write(f"Error parsing sample from line #{index}: {e}")
             return None
 
-        return LabeledPathContext(label, paths)
+        return LabeledPathContext(label, paths) # これでpathContextが帰る
 
     @staticmethod
     def tokenize_class(raw_class: str, vocab: Dict[str, int]) -> List[int]:
@@ -92,6 +95,7 @@ class PathContextDataset(Dataset):
         result += [vocab[Vocabulary.PAD]] * (max_parts - len(result))
         return result
 
+    # このpathクラスが肝な気がする
     def _get_path(self, raw_path: List[str]) -> Path:
         return Path(
             from_token=self.tokenize_token(raw_path[0], self._vocab.token_to_id, self._config.max_token_parts),
