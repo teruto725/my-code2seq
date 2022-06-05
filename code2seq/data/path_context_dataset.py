@@ -4,12 +4,15 @@ from typing import Dict, List, Optional
 
 from commode_utils.filesystem import get_lines_offsets, get_line_by_offset
 from omegaconf import DictConfig
+import torch
 from torch.utils.data import Dataset
+import torch
 
 from code2seq.data.path_context import LabeledPathContext, Path
 from code2seq.data.vocabulary import Vocabulary
 
 
+# datasetの本体　pathやらlabelやらをよしなにtokenizeしたあとにLabeledPathContextという構造にラップして返しているだけ
 class PathContextDataset(Dataset):
     _log_file = "bad_samples.log"
     _separator = "|" # subtokenのセパレータ
@@ -29,7 +32,7 @@ class PathContextDataset(Dataset):
     def __len__(self):
         return self._n_samples
 
-    def __getitem__(self, index) -> Optional[LabeledPathContext]:
+    def __getitem__(self, index) -> Optional[LabeledPathContext]: # indexのデータに対してLabeledPathContextを生成して返す
         raw_sample = get_line_by_offset(self._data_file, self._line_offsets[index])
         try:
             # code review用
@@ -37,8 +40,9 @@ class PathContextDataset(Dataset):
             _, *raw_path_contexts = c2s_content.split() #スペース区切り #methods名の削除
             raw_path_contexts = list(filter(lambda x: x != "", raw_path_contexts))
             
-            infer_content = 
-
+            # infercodeのパース
+            infer_vec = list(map(float,infer_content.split()))
+            
             # code seq用
             #raw_label, *raw_path_contexts = raw_sample.split()
 
@@ -66,8 +70,8 @@ class PathContextDataset(Dataset):
             with open(self._log_file, "a") as f_out:
                 f_out.write(f"Error parsing sample from line #{index}: {e}")
             return None
-
-        return LabeledPathContext(label, paths) # これでpathContextが帰る
+        
+        return LabeledPathContext(label, paths, infer_vec) # pathは1データにつき複数個存在するがinfer_vecは1データのみなので分ける
 
     @staticmethod
     def tokenize_class(raw_class: str, vocab: Dict[str, int]) -> List[int]:
@@ -95,7 +99,6 @@ class PathContextDataset(Dataset):
         result += [vocab[Vocabulary.PAD]] * (max_parts - len(result))
         return result
 
-    # このpathクラスが肝な気がする
     def _get_path(self, raw_path: List[str]) -> Path:
         return Path(
             from_token=self.tokenize_token(raw_path[0], self._vocab.token_to_id, self._config.max_token_parts),

@@ -19,6 +19,9 @@ from code2seq.model.modules import PathEncoder
 from code2seq.utils.optimization import configure_optimizers_alon
 from code2seq.model.metrics import Perfect, Leivensitein, BLEU
 
+import numpy as np
+
+
 class Code2Seq(LightningModule):
     def __init__(
         self,
@@ -91,13 +94,14 @@ class Code2Seq(LightningModule):
         from_token: torch.Tensor,
         path_nodes: torch.Tensor,
         to_token: torch.Tensor,
-        contexts_per_label: torch.Tensor,
+        infer_vec: torch.Tensor,  # infer
+        contexts_per_label: torch.Tensor, # データ枚のcontexts_pathの個数
         output_length: int,
-        target_sequence: torch.Tensor = None,
+        target_sequence: torch.Tensor = None # targetのlabels
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        encoded_paths = self._encoder(from_token, path_nodes, to_token)
+        encoded_paths = self._encoder(from_token, path_nodes, to_token) # encoder のforwardがここで回っている [n_contexts; batch_size]
         output_logits, attention_weights = self._decoder(
-            encoded_paths, contexts_per_label, output_length, target_sequence
+            encoded_paths,  infer_vec, contexts_per_label, output_length, target_sequence
         )
         return output_logits, attention_weights
 
@@ -110,6 +114,7 @@ class Code2Seq(LightningModule):
             batch.from_token,
             batch.path_nodes,
             batch.to_token,
+            batch.infer_vec,
             batch.contexts_per_label,
             batch.labels.shape[0],
             target_sequence,

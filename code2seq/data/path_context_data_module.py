@@ -56,7 +56,7 @@ class PathContextDataModule(LightningDataModule):
     def _create_dataset(self, holdout_file: str, random_context: bool) -> PathContextDataset:
         if self._vocabulary is None:
             raise RuntimeError(f"Setup vocabulary before creating data loaders")
-        return PathContextDataset(holdout_file, self._config, self._vocabulary, random_context)
+        return PathContextDataset(holdout_file, self._config, self._vocabulary, random_context) # TensorDatasetのInheritance　Class 
 
     def _shared_dataloader(self, holdout: str) -> DataLoader:
         if self._vocabulary is None:

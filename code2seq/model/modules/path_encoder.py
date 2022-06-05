@@ -85,6 +85,7 @@ class PathEncoder(nn.Module):
         :param from_token: [max token parts; n contexts] start tokens
         :param path_nodes: [path length; n contexts] path nodes
         :param to_token: [max tokens parts; n contexts] end tokens
+        :param infer_vec: [infer_vec; n contexts] infercode vector
         :return: [n contexts; encoder size]
         """
         # [n contexts; embedding size]
@@ -93,6 +94,7 @@ class PathEncoder(nn.Module):
 
         # [n contexts; rnn size * num directions]
         encoded_paths = self._path_nodes_embedding(path_nodes)
+
 
         # [n contexts; output size]
         output = self._concat_with_linear([encoded_from_tokens, encoded_paths, encoded_to_tokens])
