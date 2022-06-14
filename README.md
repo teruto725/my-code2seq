@@ -1,4 +1,27 @@
-# code2seq
+# my-code2seq
+
+
+## 環境構築
+```
+pipenv install 3.8
+```
+
+```
+pipenv install
+```
+
+```
+pipenv shell
+```
+GPUを使用する場合CUDAも入れる
+```
+pip install torch="10.2.2+cu113・・_
+```
+
+
+
+# original README
+## code2seq
 
 [![JetBrains Research](https://jb.gg/badges/research.svg)](https://confluence.jetbrains.com/display/ALL/JetBrains+on+GitHub)
 [![Github action: build](https://github.com/SpirinEgor/code2seq/workflows/Build/badge.svg)](https://github.com/SpirinEgor/code2seq/actions?query=workflow%3ABuild)
