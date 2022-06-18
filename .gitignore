@@ -14,3 +14,5 @@ outputs/
 code2seq.egg-info/
 dist/
 build/
+
+lightning_logs/
