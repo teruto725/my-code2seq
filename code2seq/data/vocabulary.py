@@ -24,8 +24,8 @@ class Vocabulary(BaseVocabulary):
     def _process_raw_sample(raw_sample: str, counters: Dict[str, CounterType[str]], context_seq: List[str]):
         #label, *path_contexts = raw_sample.split(" ")
         # code review用
-        label, content = raw_sample.split(" $$$ ") # raw_labelデータが教師データ [a,b,c,d]
-        _, *path_contexts = content.split(" ") #スペース区切り #methods名の削除
+        label, c2q_content, infer_content  = raw_sample.split("$$$") # raw_labelデータが教師データ [a,b,c,d]
+        _, *path_contexts = c2q_content.split(" ") #スペース区切り #methods名の削除
         path_contexts = list(filter(lambda x: x != "",path_contexts))
         # code seq用
         #label, *path_contexts = raw_sample.split(" ")
